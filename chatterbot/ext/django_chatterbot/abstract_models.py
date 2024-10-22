@@ -49,11 +49,11 @@ class AbstractBaseStatement(models.Model, StatementMixin):
     """
 
     text = models.CharField(
-        max_length=constants.STATEMENT_TEXT_MAX_LENGTH
+        max_length=1000
     )
 
     search_text = models.CharField(
-        max_length=constants.STATEMENT_TEXT_MAX_LENGTH,
+        max_length=1000,
         blank=True
     )
 
@@ -92,6 +92,15 @@ class AbstractBaseStatement(models.Model, StatementMixin):
 
     class Meta:
         abstract = True
+        indexes = [
+            models.Index(fields=['text']),
+            models.Index(fields=['search_text']),
+            models.Index(fields=['conversation']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['in_response_to']),
+            models.Index(fields=['search_in_response_to']),
+            models.Index(fields=['persona']),
+        ]
 
     def __str__(self):
         if len(self.text.strip()) > 60:
@@ -114,3 +123,16 @@ class AbstractBaseStatement(models.Model, StatementMixin):
         """
         for _tag in tags:
             self.tags.get_or_create(name=_tag)
+
+    def clean(self):
+        """
+        Custom validation method to ensure data integrity and consistency.
+        """
+        if len(self.text) > constants.STATEMENT_TEXT_MAX_LENGTH:
+            raise ValueError(f'Text length exceeds {constants.STATEMENT_TEXT_MAX_LENGTH} characters.')
+        if len(self.search_text) > constants.STATEMENT_TEXT_MAX_LENGTH:
+            raise ValueError(f'Search text length exceeds {constants.STATEMENT_TEXT_MAX_LENGTH} characters.')
+        if len(self.in_response_to or '') > constants.STATEMENT_TEXT_MAX_LENGTH:
+            raise ValueError(f'In response to length exceeds {constants.STATEMENT_TEXT_MAX_LENGTH} characters.')
+        if len(self.search_in_response_to or '') > constants.STATEMENT_TEXT_MAX_LENGTH:
+            raise ValueError(f'Search in response to length exceeds {constants.STATEMENT_TEXT_MAX_LENGTH} characters.')
